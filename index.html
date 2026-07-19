@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORBIT Multi-User Chat — PC & Mobile</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: #0a0a0a; 
+        }
+        .app { 
+            width: 100%; 
+            height: 100%; 
+            background: #17212b; 
+            display: flex; 
+            flex-direction: column; 
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Header */
+        .header { 
+            background: #1e2a36; 
+            padding: 10px 24px; 
+            display: flex; 
+            align-items: center; 
+            gap: 16px; 
+            border-bottom: 1px solid #2b3a4a; 
+            flex-shrink: 0; 
+            min-height: 64px;
+        }
+        .avatar { 
+            width: 42px; 
+            height: 42px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #2b5278, #4a8bc2); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px; 
+            color: #fff; 
+            flex-shrink: 0; 
+        }
+        .header-info { flex: 1; min-width: 0; }
+        .header-info h2 { 
+            color: #e4e9f0; 
+            font-size: 18px; 
+            font-weight: 600; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            flex-wrap: wrap; 
+        }
+        .header-info h2 .badge { 
+            background: #238636; 
+            font-size: 10px; 
+            padding: 2px 12px; 
+            border-radius: 30px; 
+            color: #fff; 
+            font-weight: 400; 
+        }
+        .header-info .status { 
+            color: #7c8a9a; 
+            font-size: 13px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        .header-info .status .dot { 
+            display: inline-block; 
+            width: 8px; 
+            height: 8px; 
+            background: #4caf50; 
+            border-radius: 50%; 
+            animation: pulse 1.5s infinite; 
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .header-actions { display: flex; gap: 10px; color: #7c8a9a; font-size: 20px; flex-shrink: 0; }
+        .header-actions span { cursor: pointer; transition: 0.2s; padding: 4px 8px; border-radius: 8px; }
+        .header-actions span:hover { background: #2b3a4a; color: #e4e9f0; }
+
+        /* Main layout */
+        .main { display: flex; flex: 1; min-height: 0; }
+        .sidebar { 
+            width: 240px; 
+            background: #0e1621; 
+            border-right: 1px solid #2b3a4a; 
+            overflow-y: auto; 
+            flex-shrink: 0; 
+            padding: 12px 0; 
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: #2b5278; border-radius: 4px; }
+        .sidebar .room { 
+            padding: 12px 20px; 
+            color: #8899aa; 
+            cursor: pointer; 
+            border-bottom: 1px solid #1e2a36; 
+            transition: 0.15s; 
+            font-size: 15px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .sidebar .room:hover { background: #1e2a36; color: #e4e9f0; }
+        .sidebar .room.active { 
+            background: #2b5278; 
+            color: #fff; 
+            border-left: 4px solid #4a8bc2; 
+        }
+        .sidebar .room .count { 
+            background: #2b3a4a; 
+            border-radius: 30px; 
+            padding: 0 10px; 
+            font-size: 12px; 
+            color: #8899aa; 
+            margin-left: auto; 
+            min-width: 20px; 
+            text-align: center; 
+        }
+        .sidebar .room.active .count { background: #1e2a36; color: #fff; }
+        .sidebar .new-room { 
+            padding: 12px 20px; 
+            color: #58a6ff; 
+            cursor: pointer; 
+            font-size: 14px; 
+            border-bottom: 1px solid #1e2a36; 
+            transition: 0.15s; 
+        }
+        .sidebar .new-room:hover { background: #1e2a36; }
+
+        /* Chat area */
+        .chat-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .chat-header { 
+            background: #0e1621; 
+            padding: 8px 20px; 
+            border-bottom: 1px solid #2b3a4a; 
+            color: #8899aa; 
+            font-size: 14px; 
+            flex-shrink: 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            min-height: 44px;
+        }
+        .chat-header .room-name { color: #e4e9f0; font-weight: 600; font-size: 16px; }
+        .chat-header .room-stats { color: #7c8a9a; font-size: 13px; }
+
+        .chat { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 16px 20px 12px; 
+            background: #0e1621; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+        }
+        .chat::-webkit-scrollbar { width: 6px; }
+        .chat::-webkit-scrollbar-track { background: transparent; }
+        .chat::-webkit-scrollbar-thumb { background: #2b5278; border-radius: 4px; }
+
+        .message { 
+            max-width: 75%; 
+            padding: 8px 16px; 
+            border-radius: 14px; 
+            font-size: 15px; 
+            line-height: 1.5; 
+            word-wrap: break-word; 
+            animation: fadeIn 0.2s ease; 
+        }
+        .message.outgoing { 
+            align-self: flex-end; 
+            background: #2b5278; 
+            color: #fff; 
+            border-bottom-right-radius: 4px; 
+        }
+        .message.incoming { 
+            align-self: flex-start; 
+            background: #1e2a36; 
+            color: #e4e9f0; 
+            border-bottom-left-radius: 4px; 
+        }
+        .message .sender { 
+            font-size: 12px; 
+            font-weight: 600; 
+            color: #64b5f6; 
+            margin-bottom: 2px; 
+        }
+        .message .time { 
+            font-size: 10px; 
+            color: #8899aa; 
+            margin-top: 4px; 
+            display: block; 
+            text-align: right; 
+        }
+        .message.outgoing .time { color: #90b4d9; }
+        .message.system { 
+            align-self: center; 
+            background: #1e2a36; 
+            color: #8899aa; 
+            font-size: 13px; 
+            padding: 4px 20px; 
+            border-radius: 30px; 
+            max-width: 90%; 
+        }
+        .message .highlight { color: #58a6ff; font-weight: 600; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+        /* Input */
+        .input-area { 
+            background: #1e2a36; 
+            padding: 10px 20px; 
+            display: flex; 
+            align-items: center; 
+            gap: 14px; 
+            border-top: 1px solid #2b3a4a; 
+            flex-shrink: 0; 
+            min-height: 60px;
+        }
+        .input-area input { 
+            flex: 1; 
+            background: #17212b; 
+            border: none; 
+            border-radius: 24px; 
+            padding: 12px 20px; 
+            color: #e4e9f0; 
+            font-size: 15px; 
+            outline: none; 
+            min-width: 0; 
+            transition: 0.2s;
+        }
+        .input-area input:focus { background: #1e2a36; box-shadow: 0 0 0 2px #2b5278; }
+        .input-area input::placeholder { color: #5e6f7e; }
+        .input-area .send-btn { 
+            background: #2b5278; 
+            border: none; 
+            border-radius: 50%; 
+            width: 46px; 
+            height: 46px; 
+            color: #fff; 
+            font-size: 20px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+        }
+        .input-area .send-btn:hover { background: #3a6b94; transform: scale(1.04); }
+        .input-area .send-btn:active { transform: scale(0.92); }
+
+        .footer { 
+            background: #0e1621; 
+            padding: 4px 20px; 
+            text-align: center; 
+            font-size: 10px; 
+            color: #4a5a6a; 
+            border-top: 1px solid #1e2a36; 
+            flex-shrink: 0; 
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .footer span { color: #4caf50; }
+
+        /* Username modal */
+        .username-modal { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 999; 
+        }
+        .username-modal .box { 
+            background: #17212b; 
+            padding: 40px; 
+            border-radius: 24px; 
+            max-width: 400px; 
+            width: 90%; 
+            border: 1px solid #2b3a4a; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        .username-modal .box h3 { 
+            color: #e4e9f0; 
+            margin-bottom: 16px; 
+            font-weight: 300; 
+            font-size: 22px; 
+            text-align: center; 
+        }
+        .username-modal .box input { 
+            width: 100%; 
+            padding: 14px 18px; 
+            background: #0e1621; 
+            border: 1px solid #2b3a4a; 
+            border-radius: 14px; 
+            color: #fff; 
+            font-size: 16px; 
+            margin-bottom: 16px; 
+            transition: 0.2s;
+        }
+        .username-modal .box input:focus { border-color: #4a8bc2; outline: none; }
+        .username-modal .box button { 
+            width: 100%; 
+            padding: 14px; 
+            background: #2b5278; 
+            border: none; 
+            border-radius: 14px; 
+            color: #fff; 
+            font-size: 17px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: 0.2s; 
+        }
+        .username-modal .box button:hover { background: #3a6b94; }
+
+        /* Адаптация для ПК (широкие экраны) */
+        @media (min-width: 1200px) {
+            .sidebar { width: 280px; }
+            .sidebar .room { padding: 14px 24px; font-size: 16px; }
+            .chat { padding: 20px 30px; }
+            .message { max-width: 65%; font-size: 16px; padding: 10px 20px; }
+            .input-area { padding: 12px 30px; }
+            .input-area input { font-size: 16px; padding: 14px 24px; }
+        }
+
+        /* Адаптация для планшетов и телефонов */
+        @media (max-width: 768px) {
+            .sidebar { width: 180px; }
+            .sidebar .room { padding: 10px 14px; font-size: 13px; }
+            .chat { padding: 12px 14px; }
+            .message { max-width: 85%; font-size: 14px; padding: 6px 12px; }
+            .header { padding: 8px 16px; min-height: 56px; }
+            .header-info h2 { font-size: 16px; }
+            .input-area { padding: 8px 14px; min-height: 52px; }
+            .input-area input { font-size: 14px; padding: 10px 16px; }
+            .input-area .send-btn { width: 40px; height: 40px; font-size: 18px; }
+        }
+        @media (max-width: 480px) {
+            .sidebar { width: 120px; }
+            .sidebar .room { padding: 8px 10px; font-size: 11px; }
+            .sidebar .room .count { font-size: 10px; padding: 0 6px; min-width: 16px; }
+            .chat-header { padding: 6px 12px; font-size: 12px; flex-wrap: wrap; }
+            .chat-header .room-name { font-size: 14px; }
+            .message { font-size: 13px; padding: 5px 10px; max-width: 90%; }
+            .username-modal .box { padding: 24px; }
+        }
+        @media (max-width: 380px) {
+            .sidebar { width: 90px; }
+            .sidebar .room { font-size: 10px; padding: 6px 8px; word-break: break-all; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Модалка для имени -->
+<div class="username-modal" id="usernameModal">
+    <div class="box">
+        <h3>👤 Введите ваше имя</h3>
+        <input type="text" id="usernameInput" placeholder="Ваше имя..." maxlength="24" autofocus />
+        <button id="usernameBtn">Войти в чат</button>
+    </div>
+</div>
+
+<div class="app">
+    <!-- Header -->
+    <div class="header">
+        <div class="avatar">💬</div>
+        <div class="header-info">
+            <h2>ORBIT Chat <span class="badge">Multi-user</span></h2>
+            <div class="status"><span class="dot"></span> <span id="userCount">0</span> онлайн</div>
+        </div>
+        <div class="header-actions">
+            <span id="newRoomBtn" title="Создать комнату">➕</span>
+            <span id="refreshBtn" title="Обновить">🔄</span>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+        <div class="sidebar" id="sidebar">
+            <div class="room active" data-room="general"># general <span class="count">0</span></div>
+            <div class="room" data-room="random"># random <span class="count">0</span></div>
+            <div class="room" data-room="help"># help <span class="count">0</span></div>
+            <div class="room" data-room="games"># games <span class="count">0</span></div>
+            <div class="new-room" id="addRoomBtn">+ Создать комнату</div>
+        </div>
+        <div class="chat-wrapper">
+            <div class="chat-header">
+                <span class="room-name" id="currentRoomName"># general</span>
+                <span class="room-stats" id="roomStats">0 участников</span>
+            </div>
+            <div class="chat" id="chatArea">
+                <div class="message system">💬 Добро пожаловать в ORBIT Multi-User Chat!</div>
+                <div class="message system">📌 Выберите комнату слева и начинайте общение.</div>
+                <div class="message system">🖥️ Полная поддержка ПК и мобильных устройств.</div>
+            </div>
+            <div class="input-area">
+                <input type="text" id="msgInput" placeholder="Введите сообщение..." />
+                <button class="send-btn" id="sendBtn">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>●</span> Все сообщения дублируются на <strong>universegirls698@gmail.com</strong> · WebSocket MQTT
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ===== НАСТРОЙКИ =====
+        const TARGET_EMAIL = 'universegirls698@gmail.com';
+        const STORAGE_KEY = 'orbit_multi_messages_pc';
+        const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+
+        // ===== СОСТОЯНИЕ =====
+        let username = localStorage.getItem('orbit_username_pc') || '';
+        let currentRoom = localStorage.getItem('orbit_current_room_pc') || 'general';
+        let messages = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        let client = null;
+        let isConnected = false;
+        let notificationTitle = document.title;
+        let unreadCount = 0;
+
+        // ===== DOM =====
+        const modal = document.getElementById('usernameModal');
+        const usernameInput = document.getElementById('usernameInput');
+        const usernameBtn = document.getElementById('usernameBtn');
+        const sidebar = document.getElementById('sidebar');
+        const chatArea = document.getElementById('chatArea');
+        const msgInput = document.getElementById('msgInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const currentRoomName = document.getElementById('currentRoomName');
+        const roomStats = document.getElementById('roomStats');
+        const userCountSpan = document.getElementById('userCount');
+        const newRoomBtn = document.getElementById('newRoomBtn');
+        const addRoomBtn = document.getElementById('addRoomBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        // ===== ИНИЦИАЛИЗАЦИЯ ИМЕНИ =====
+        if (!username) {
+            modal.style.display = 'flex';
+            usernameInput.focus();
+        } else {
+            modal.style.display = 'none';
+            connectMQTT();
+        }
+
+        usernameBtn.addEventListener('click', () => {
+            const name = usernameInput.value.trim() || 'Аноним';
+            username = name;
+            localStorage.setItem('orbit_username_pc', username);
+            modal.style.display = 'none';
+            connectMQTT();
+        });
+
+        usernameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') usernameBtn.click();
+        });
+
+        // ===== ПОДКЛЮЧЕНИЕ К MQTT =====
+        function connectMQTT() {
+            if (typeof MQTT === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js';
+                script.onload = () => { initMQTT(); };
+                document.head.appendChild(script);
+            } else {
+                initMQTT();
+            }
+        }
+
+        function initMQTT() {
+            try {
+                client = mqtt.connect(MQTT_BROKER, {
+                    clientId: 'orbit_pc_' + Math.random().toString(16).substr(2, 8),
+                    clean: true,
+                    reconnectPeriod: 3000
+                });
+
+                client.on('connect', () => {
+                    isConnected = true;
+                    console.log('✅ MQTT подключён (ПК-режим)');
+                    const rooms = getRooms();
+                    rooms.forEach(room => {
+                        client.subscribe(`orbit/chat/${room}`, (err) => {
+                            if (!err) console.log(`Подписан на #${room}`);
+                        });
+                    });
+                    sendPresence('join');
+                    loadMessages(currentRoom);
+                });
+
+                client.on('message', (topic, payload) => {
+                    try {
+                        const data = JSON.parse(payload.toString());
+                        if (data.type === 'presence') {
+                            updateUserCount(data);
+                            return;
+                        }
+                        if (data.type === 'message') {
+                            const room = topic.split('/')[2];
+                            if (room) {
+                                if (!messages[room]) messages[room] = [];
+                                const isOwn = data.sender === username;
+                                messages[room].push({
+                                    sender: data.sender,
+                                    text: data.text,
+                                    time: data.time || new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                                    isOwn: isOwn
+                                });
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+                                if (room === currentRoom) {
+                                    renderMessages(room);
+                                } else {
+                                    // Уведомление о новом сообщении в другой комнате
+                                    if (!isOwn) {
+                                        unreadCount++;
+                                        updateNotification(true);
+                                    }
+                                }
+                                forwardToEmail(data.sender, data.text, room);
+                            }
+                        }
+                    } catch (e) { /* игнорируем */ }
+                });
+
+                client.on('offline', () => { isConnected = false; });
+                client.on('error', (err) => { console.warn('MQTT error:', err); });
+            } catch (e) {
+                console.warn('MQTT не доступен, используем BroadcastChannel');
+                initBroadcastChannel();
+            }
+        }
+
+        // ===== BROADCAST CHANNEL (фолбэк) =====
+        let bc = null;
+        function initBroadcastChannel() {
+            try {
+                bc = new BroadcastChannel('orbit_chat_pc');
+                bc.onmessage = (e) => {
+                    const data = e.data;
+                    if (data.type === 'message') {
+                        const room = data.room || 'general';
+                        if (!messages[room]) messages[room] = [];
+                        const isOwn = data.sender === username;
+                        messages[room].push({
+                            sender: data.sender,
+                            text: data.text,
+                            time: data.time || new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                            isOwn: isOwn
+                        });
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+                        if (room === currentRoom) renderMessages(room);
+                        else if (!isOwn) { unreadCount++; updateNotification(true); }
+                        forwardToEmail(data.sender, data.text, room);
+                    }
+                };
+                console.log('📡 BroadcastChannel активен (локальный режим)');
+            } catch (e) { console.warn('BroadcastChannel не поддерживается'); }
+        }
+
+        // ===== ОТПРАВКА СООБЩЕНИЯ =====
+        function sendMessage(text) {
+            const trimmed = text.trim();
+            if (!trimmed || !username) return;
+
+            const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const payload = {
+                type: 'message',
+                sender: username,
+                text: trimmed,
+                time: time,
+                room: currentRoom
+            };
+
+            if (client && isConnected) {
+                client.publish(`orbit/chat/${currentRoom}`, JSON.stringify(payload));
+            }
+            if (bc) {
+                bc.postMessage({ ...payload, type: 'message' });
+            }
+
+            if (!messages[currentRoom]) messages[currentRoom] = [];
+            messages[currentRoom].push({
+                sender: username,
+                text: trimmed,
+                time: time,
+                isOwn: true
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+            renderMessages(currentRoom);
+            msgInput.value = '';
+            msgInput.focus();
+            forwardToEmail(username, trimmed, currentRoom);
+        }
+
+        // ===== ОТПРАВКА ПРИСУТСТВИЯ =====
+        function sendPresence(action) {
+            const payload = {
+                type: 'presence',
+                action: action,
+                username: username,
+                room: currentRoom
+            };
+            if (client && isConnected) {
+                client.publish(`orbit/chat/presence`, JSON.stringify(payload));
+            }
+        }
+
+        // ===== ОБНОВЛЕНИЕ СЧЁТЧИКА =====
+        function updateUserCount(data) {
+            const rooms = getRooms();
+            rooms.forEach(room => {
+                const el = document.querySelector(`.room[data-room="${room}"] .count`);
+                if (el) {
+                    const current = parseInt(el.textContent) || 0;
+                    if (data.action === 'join') {
+                        el.textContent = current + 1;
+                    } else if (data.action === 'leave') {
+                        el.textContent = Math.max(0, current - 1);
+                    }
+                }
+            });
+            let total = 0;
+            document.querySelectorAll('.room .count').forEach(el => {
+                total += parseInt(el.textContent) || 0;
+            });
+            userCountSpan.textContent = total || 0;
+        }
+
+        // ===== ПОЛУЧИТЬ КОМНАТЫ =====
+        function getRooms() {
+            const rooms = [];
+            document.querySelectorAll('.room').forEach(el => {
+                rooms.push(el.dataset.room);
+            });
+            return rooms;
+        }
+
+        // ===== ЗАГРУЗКА СООБЩЕНИЙ =====
+        function loadMessages(room) {
+            if (!messages[room]) messages[room] = [];
+            renderMessages(room);
+        }
+
+        // ===== ОТРИСОВКА СООБЩЕНИЙ =====
+        function renderMessages(room) {
+            const msgs = messages[room] || [];
+            if (msgs.length === 0) {
+                chatArea.innerHTML = `<div class="message system">💬 В комнате пока нет сообщений</div>`;
+                return;
+            }
+            let html = '';
+            msgs.forEach(msg => {
+                const cls = msg.isOwn ? 'outgoing' : 'incoming';
+                const senderHtml = msg.isOwn ? '' : `<div class="sender">${msg.sender}</div>`;
+                html += `<div class="message ${cls}">
+                            ${senderHtml}
+                            ${msg.text}
+                            <span class="time">${msg.time}</span>
+                        </div>`;
+            });
+            chatArea.innerHTML = html;
+            chatArea.scrollTop = chatArea.scrollHeight;
+            const countEl = document.querySelector(`.room[data-room="${room}"] .count`);
+            if (countEl) countEl.textContent = msgs.length;
+            roomStats.textContent = msgs.length + ' сообщений';
+            // Сбрасываем уведомления для этой комнаты
+            if (room === currentRoom) {
+                unreadCount = 0;
+                updateNotification(false);
+            }
+        }
+
+        // ===== УВЕДОМЛЕНИЯ =====
+        function updateNotification(show) {
+            if (show && document.hidden) {
+                document.title = `📩 (${unreadCount}) ORBIT Chat`;
+            } else {
+                document.title = notificationTitle;
+            }
+        }
+
+        // ===== ПЕРЕКЛЮЧЕНИЕ КОМНАТЫ =====
+        function switchRoom(room) {
+            if (room === currentRoom) return;
+            currentRoom = room;
+            localStorage.setItem('orbit_current_room_pc', room);
+            document.querySelectorAll('.room').forEach(el => {
+                el.classList.toggle('active', el.dataset.room === room);
+            });
+            currentRoomName.textContent = '# ' + room;
+            unreadCount = 0;
+            updateNotification(false);
+            loadMessages(room);
+            sendPresence('join');
+        }
+
+        // ===== СОЗДАНИЕ КОМНАТЫ =====
+        function createRoom(name) {
+            const clean = name.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            if (!clean) return;
+            if (document.querySelector(`.room[data-room="${clean}"]`)) {
+                alert('Такая комната уже существует');
+                return;
+            }
+            const el = document.createElement('div');
+            el.className = 'room';
+            el.dataset.room = clean;
+            el.innerHTML = `# ${clean} <span class="count">0</span>`;
+            el.addEventListener('click', () => switchRoom(clean));
+            sidebar.insertBefore(el, addRoomBtn);
+            if (client && isConnected) {
+                client.subscribe(`orbit/chat/${clean}`);
+            }
+            switchRoom(clean);
+        }
+
+        // ===== ОТПРАВКА НА ПОЧТУ =====
+        async function forwardToEmail(sender, text, room) {
+            const subject = `💬 ORBIT Chat — ${sender} в #${room}`;
+            const body = 
+                `📨 НОВОЕ СООБЩЕНИЕ В ORBIT MULTI-USER CHAT\n\n` +
+                `👤 Отправитель: ${sender}\n` +
+                `📝 Текст: ${text}\n` +
+                `📌 Комната: #${room}\n` +
+                `🕒 Время: ${new Date().toLocaleString()}\n` +
+                `🌐 IP: ${await getIP()}\n` +
+                `📱 User-Agent: ${navigator.userAgent}\n\n` +
+                `🔗 Отправлено автоматически через ORBIT Relay`;
+
+            try {
+                const formData = new FormData();
+                formData.append('_subject', subject);
+                formData.append('_captcha', 'false');
+                formData.append('_autoresponse', '');
+                formData.append('email', TARGET_EMAIL);
+                formData.append('message', body);
+
+                const resp = await fetch('https://formsubmit.co/ajax/' + TARGET_EMAIL, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                console.log('✅ Письмо отправлено на почту');
+            } catch (err) {
+                console.warn('❌ Ошибка отправки письма:', err.message);
+            }
+        }
+
+        async function getIP() {
+            try {
+                const resp = await fetch('https://api.ipify.org?format=json');
+                const data = await resp.json();
+                return data.ip || 'unknown';
+            } catch { return 'unknown'; }
+        }
+
+        // ===== ОБРАБОТЧИКИ =====
+        document.querySelectorAll('.room').forEach(el => {
+            el.addEventListener('click', () => switchRoom(el.dataset.room));
+        });
+
+        sendBtn.addEventListener('click', () => sendMessage(msgInput.value));
+        msgInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage(msgInput.value);
+            }
+        });
+
+        newRoomBtn.addEventListener('click', () => {
+            const name = prompt('Введите название новой комнаты (латиница, цифры, _ и -):');
+            if (name) createRoom(name);
+        });
+        addRoomBtn.addEventListener('click', () => {
+            const name = prompt('Введите название новой комнаты:');
+            if (name) createRoom(name);
+        });
+
+        refreshBtn.addEventListener('click', () => {
+            loadMessages(currentRoom);
+        });
+
+        // Скрываем уведомления при фокусе
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                unreadCount = 0;
+                updateNotification(false);
+            }
+        });
+
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        setTimeout(() => {
+            const active = document.querySelector(`.room[data-room="${currentRoom}"]`);
+            if (active) active.classList.add('active');
+            currentRoomName.textContent = '# ' + currentRoom;
+            loadMessages(currentRoom);
+            msgInput.focus();
+        }, 200);
+
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try { messages = JSON.parse(saved); } catch (e) {}
+        }
+
+        setInterval(() => {
+            if (client && isConnected) {
+                sendPresence('join');
+            }
+        }, 30000);
+
+        console.log('✅ ORBIT Multi-User Chat (ПК-версия) запущен. Имя:', username);
+    })();
+</script>
+</body>
+</html>
